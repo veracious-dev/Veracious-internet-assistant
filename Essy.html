@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Chatbot with Pretrained Responses</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f7f7f7;
+      margin: 0; 
+    }
+
+    /* Chatbot Container */
+    .chat-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      transition: right 0.3s ease-in-out; /* Add transition for smooth opening/closing */
+      right: -300px; /* Initially hide the chatbox */
+    }
+
+    .chat-container.open { /* Style when chatbot is open */
+      right: 20px; 
+    }
+
+    /* Chatbot Header */
+    .chat-header {
+      background-color: #0084ff;
+      color: white;
+      padding: 10px;
+      text-align: left; 
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center; 
+    }
+
+    /* Close button in header */
+    .close-button { 
+      cursor: pointer;
+      font-size: 1.2em;
+      padding: 5px;
+    }
+
+    /* Chat Log */
+    .chat-log {
+      padding: 20px;
+      height: 350px;
+      overflow-y: auto;
+    }
+
+    /* Chat Messages */
+    .chat-log > div {
+      margin-bottom: 15px;
+    }
+
+    .user-message {
+      background-color: #e5e5e5;
+      padding: 10px 15px;
+      border-radius: 20px;
+      margin-left: auto;
+      text-align: right;
+      max-width: 70%;
+      align-self: flex-end;
+    }
+
+    .ai-message {
+      background-color: #f0f0f0;
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 70%;
+      align-self: flex-start;
+    }
+
+    /* Input Area */
+    .input-container {
+      padding: 15px;
+      border-top: 1px solid #ddd;
+      display: flex;
+    }
+
+    .input-field {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      margin-right: 10px;
+    }
+
+    .send-button {
+      background-color: #0084ff;
+      color: #fff;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .send-button:hover {
+      background-color: #006acc;
+    }
+
+    /* Chatbot Logo */
+    #chatbot-logo {
+	   max-width: 3%;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      cursor: pointer;
+      z-index: 10; /* Ensure the logo is above the chatbot */
+    }
+  </style>
+</head>
+<body>
+
+  <img src="veracious.jpg" alt="Chatbot Logo" id="chatbot-logo"> 
+
+  <div class="chat-container" id="chat-container">
+    <div class="chat-header">
+   Veracious AI
+      <span class="close-button" onclick="closeChatbox()">×</span> </div>
+    <div class="chat-log" id="chat-log">
+      
+    </div>
+    <div class="input-container">
+      <input class="input-field" id="input-field" placeholder="Type a message..." type="text">
+      <button class="send-button" id="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatContainer = document.getElementById('chat-container');
+    const chatLog = document.getElementById('chat-log');
+    const inputField = document.getElementById('input-field');
+    const sendButton = document.getElementById('send-button');
+    const chatbotLogo = document.getElementById('chatbot-logo');
+
+    //  actual API key
+    const apiKey = 'AIzaSyCoVQ0gBgSGGFCgubpeLyOUr10eHPasxzQ'; 
+// pretrained results
+  const pretrainedResponses = {
+  "hello": [
+    "Hi there! I'm your veracious cyber assistant. How can I assist you today?",
+    "Hello! What can I do for you today?",
+    "Hey! How can I help you out today?"
+  ],
+  "hi": "Hello! I'm your veracious cyber assistant. How can I assist you?",
+  "how are you": [
+    "I'm a veracious cyber assistant, so I don't have feelings, but thanks for asking! How can I assist you today?",
+    "I’m always here and ready to help! How about you?"
+  ],
+  "how’s it going": "I'm your veracious cyber assistant, and I'm here to help! How's it going for you?",
+  "what’s your name": [
+    "I’m your veracious cyber assistant, ready to guide you. What’s your name?",
+    "I’m a virtual assistant designed to assist you. What’s your name?"
+  ],
+  "who are you": "I’m a veracious cyber assistant, here to help with whatever you need. How can I assist?",
+  "help me write ...": [
+    "Sure! I'm a veracious cyber assistant ready to assist. Could you provide more details about what you're trying to write?",
+    "Absolutely! Let me know more about what you need written, and I'll help out."
+  ],
+  "help me write a letter": [
+    "I'd be happy to help you write that letter! Just let me know who it’s for and what the key message is.",
+    "I can help with that! Let me know the recipient and what you'd like to convey."
+  ],
+  "write a letter": [
+    "Who is the letter for, and what’s the main message you want to send? I'm a veracious cyber assistant, ready to assist.",
+    "I can assist with writing the letter! Could you tell me the recipient and the message you'd like to convey?"
+  ],
+  "help me write an email": [
+    "I'd be happy to assist with your email! Who is the recipient, and what’s the subject?",
+    "I can help draft your email! Just share the recipient, subject, and key points, and I’ll assist."
+  ],
+  "write an email": [
+    "Who is the email for, and what’s the key message you want to send?",
+    "I can help you with that email! What’s the subject, and who are you writing to?"
+  ],
+  "write": [
+    "I’d love to help you write! Could you clarify what type of content? (e.g., letter, blog, script)",
+    "Let me know what you're trying to write, and as your veracious cyber assistant, I’ll guide you through the process."
+  ],
+  "write a blog post": [
+    "Great! I’m a veracious cyber assistant, and I’m here to help. What’s the topic and audience for your blog?",
+    "I’d love to assist! What’s your blog post about, and what tone are you aiming for?"
+  ],
+  "help me write a blog post": [
+    "Sure! What’s the topic, and do you have a target audience in mind? I’m your veracious cyber assistant, here to help!",
+    "Let’s get started! What’s the theme of your blog post, and do you have a preferred style?"
+  ],
+  "write an article": [
+    "What’s the subject of the article, and do you want it to be informative, persuasive, or entertaining?",
+    "I can help with that article! What’s the key message, and what tone would you like to set?"
+  ],
+  "help me create content": [
+    "Of course! I’m your veracious cyber assistant, ready to help. What kind of content are you creating (e.g., social media, blogs), and for which platform?",
+    "I’m here to help! What type of content are you focused on, and who’s your target audience?"
+  ],
+  "content ideas": [
+    "What type of content are you thinking of? I can help brainstorm ideas for social media, blogs, or videos.",
+    "I can help with that! Do you need content for social media, blogs, or another platform?"
+  ],
+  "write a script": [
+    "I'd love to help! As your veracious cyber assistant, I’m ready to assist with your script. What’s it about, and who’s the target audience?",
+    "Let’s work on it! What’s the topic of your script, and what style are you aiming for?"
+  ],
+  "help me write a script": [
+    "I can assist with that! What’s the focus of the script, and what tone are you going for?",
+    "Let’s get started! Tell me about the script’s theme, and I’ll help you shape it."
+  ],
+  "how do I make ...": [
+    "I’m a veracious cyber assistant, and I can guide you through it! What are you trying to create?",
+    "Let me assist! Could you specify what you need help with, and I’ll guide you through the process?"
+  ],
+  "create a website": [
+    "Do you have a specific platform in mind (e.g., WordPress, Bubble.io)? I’m your veracious cyber assistant, here to guide you!",
+    "Let’s create your website! What’s your vision, and do you have a tool or platform in mind?"
+  ],
+  "how to make a video": [
+    "I can help with that! Are you looking for assistance with scripting, recording, or editing?",
+    "Let me assist you! What’s the purpose of the video, and where do you need help (e.g., planning, editing)?"
+  ],
+  "how to go viral": [
+    "Going viral depends on engaging content and trends! I’m a veracious cyber assistant, here to guide you. What platform are you aiming for?",
+    "Let’s talk strategy! What kind of content do you want to go viral, and on which platform?"
+  ],
+  "how do I grow my audience": [
+    "Growing an audience requires strategy and consistency. I’m your veracious cyber assistant, ready to help. Are you focused on a particular platform?",
+    "Let’s build your audience! What type of content are you creating, and where do you want to grow?"
+  ],
+  "audience growth": "Growing your audience takes time and strategy! I’m your veracious cyber assistant, and I can offer tips based on your platform."
+};
+
+
+
+    chatbotLogo.addEventListener('click', () => {
+      chatContainer.classList.toggle('open');
+    });
+
+    function closeChatbox() {
+      chatContainer.classList.remove('open');
+    }
+
+    async function sendApiRequest(message) {
+      try {
+        // 1. Check for pretrained responses first
+        const lowercaseMessage = message.toLowerCase(); 
+        if (lowercaseMessage in pretrainedResponses) {
+          const aiMessage = pretrainedResponses[lowercaseMessage];
+          appendMessage('ai', aiMessage);
+          return; // Stop further API calls if response found
+        }
+
+        // 2. If no pretrained response, call the Gemini API
+        const apiEndpoint = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=' + apiKey;
+        const requestBody = {
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: message }]
+            }
+          ]
+        };
+
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiMessage = data.candidates[0].content.parts[0].text; 
+        appendMessage('ai', aiMessage); 
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        appendMessage('ai', 'Sorry, there was an error processing your request.');
+      }
+    }
+
+    function appendMessage(role, message) {
+      const messageHTML = `
+        <div class="${role}-message">
+          ${message}
+        </div>
+      `;
+      chatLog.innerHTML += messageHTML;
+      chatLog.scrollTop = chatLog.scrollHeight; 
+    }
+
+    sendButton.addEventListener('click', () => {
+      const userInput = inputField.value.trim();
+      if (userInput) {
+        appendMessage('user', userInput);
+        sendApiRequest(userInput);
+        inputField.value = ''; 
+      }
+    });
+  </script>
+</body>
+</html>
